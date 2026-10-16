@@ -40,7 +40,7 @@
     "fg_color": "#FAFBFD",
     "border_color": "#DFE6EE",
     "text_color": "#203445",
-    "placeholder_text_color": "#697C8E"
+    "placeholder_text_color": "#5B6E80"
   },
   "CTkCheckBox": {
     "corner_radius": 6,

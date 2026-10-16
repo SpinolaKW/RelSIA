@@ -78,6 +78,19 @@ def icon(name: str, color: str = "#697C8E", size: int = 20) -> ctk.CTkImage:
         line([(12, 3), (12, 16)])
         line([(7, 11), (12, 16), (17, 11)])
         line([(4, 17), (4, 21), (20, 21), (20, 17)])
+    elif name == "search":
+        ellipse((3, 3, 16, 16))
+        line([(15, 15), (21, 21)])
+    elif name == "chevron_right":
+        line([(9, 5), (16, 12), (9, 19)])
+    elif name == "chevron_left":
+        line([(15, 5), (8, 12), (15, 19)])
+    elif name == "arrow":
+        line([(4, 12), (20, 12)])
+        line([(14, 6), (20, 12), (14, 18)])
+    elif name == "close":
+        line([(6, 6), (18, 18)])
+        line([(18, 6), (6, 18)])
     elif name == "lock":
         box((5, 10, 19, 21), 2)
         draw.arc((8*scale, 2*scale, 16*scale, 16*scale), 180, 360, fill=color, width=6)

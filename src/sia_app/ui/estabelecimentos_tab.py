@@ -1,6 +1,8 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
 import customtkinter as ctk
+from sia_app.ui.theme import configure_table_style
+from sia_app.ui.components.design import PageHeader
 from typing import Dict, List, Optional
 import logging
 from sia_app.database.connection import DatabaseConnection
@@ -87,26 +89,9 @@ class EstabelecimentosTab:
         # Status
         self._create_status_section(main_frame)
 
-    def _create_title_section(self, parent) -> None:
-        """Cria a seção de título."""
-        header = ctk.CTkFrame(parent, fg_color="transparent")
-        header.pack(fill="x", padx=18, pady=(18, 8))
-
-        ctk.CTkLabel(
-            header,
-            text="Cadastro de Estabelecimentos",
-            font=(FONT_FAMILY, 22, "bold"),
-            text_color=COLORS["text"],
-            anchor="center"
-        ).pack(anchor="center")
-
-        ctk.CTkLabel(
-            header,
-            text="Consulte, adicione, edite e remova estabelecimentos cadastrados no sistema",
-            font=(FONT_FAMILY, 12),
-            text_color=COLORS["muted"],
-            anchor="center"
-        ).pack(anchor="center", pady=(2, 0))
+    def _create_title_section(self, parent):
+        header = PageHeader(parent, 'Gestão e cadastros', 'Estabelecimentos', 'Organize as unidades de saúde e mantenha os dados de identificação atualizados.')
+        header.pack(fill="x", padx=18, pady=(24, 18))
 
     def _create_search_section(self, parent) -> None:
         """Cria a seção moderna de busca."""
@@ -209,39 +194,14 @@ class EstabelecimentosTab:
         tree_container = ttk.Frame(parent)
         tree_container.pack(fill="both", expand=True)
 
-        style = ttk.Style()
-        style.configure(
-            "ModernEstab.Treeview",
-            background="#FFFFFF",
-            fieldbackground="#FFFFFF",
-            text_color=COLORS["text"],
-            rowheight=30,
-            font=(FONT_FAMILY, 10),
-            borderwidth=0
-        )
-        style.configure(
-            "ModernEstab.Treeview.Heading",
-            font=(FONT_FAMILY, 10, "bold"),
-            text_color=COLORS["text"],
-            background="#F8FAFC",
-            relief="flat"
-        )
-        style.map(
-            "ModernEstab.Treeview",
-            background=[("selected", "#114d8a")],
-            text_color=[("selected", COLORS["text"])]
-        )
-        style.map(
-            "ModernEstab.Treeview.Heading",
-            background=[("active", "#EFF5F2")]
-        )
+        configure_table_style(self.frame, "ModernEstab.Treeview")
         
         # Treeview
         self.tree = ttk.Treeview(
             tree_container,
             columns=self.COLUNAS,
             show="headings",
-            height=18,
+            height=12,
             selectmode="browse",
             style="ModernEstab.Treeview"
         )

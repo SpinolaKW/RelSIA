@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 from tkinter.scrolledtext import ScrolledText
 import customtkinter as ctk
+from sia_app.ui.components.design import PageHeader
 import logging
 import threading
 import os
@@ -217,25 +218,8 @@ class FileUploadTab:
         self._create_log_section(main_frame)
 
     def _create_title_section(self, parent):
-        """Cria a seção de título."""
-        header = ctk.CTkFrame(parent, fg_color="transparent")
-        header.pack(fill="x", padx=18, pady=(18, 8))
-
-        ctk.CTkLabel(
-            header,
-            text="Upload de Arquivos do SIA/SUS",
-            font=(FONT_FAMILY, 22, "bold"),
-            text_color=COLORS["text"],
-            anchor="center"
-        ).pack(anchor="center")
-
-        ctk.CTkLabel(
-            header,
-            text="Selecione os arquivos de produção, procedimentos e estabelecimentos para importar no banco de dados",
-            font=(FONT_FAMILY, 12),
-            text_color=COLORS["muted"],
-            anchor="center"
-        ).pack(anchor="center", pady=(2, 0))
+        header = PageHeader(parent, 'Gestão e cadastros', 'Importar arquivos', 'Adicione os arquivos de produção, procedimentos e estabelecimentos do SIA.')
+        header.pack(fill="x", padx=18, pady=(24, 18))
         
     def _create_file_selection_section(self, parent):
         """Cria a seção moderna de seleção de arquivos."""

@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 import customtkinter as ctk
+from sia_app.ui.components.design import PageHeader
 import os
 import subprocess
 from datetime import datetime
@@ -54,25 +55,8 @@ class ReportsTab:
         self._log("Sistema de relatórios inicializado")
         
     def _create_title_section(self, parent):
-        """Cria a seção de título."""
-        header = ctk.CTkFrame(parent, fg_color="transparent")
-        header.pack(fill="x", padx=18, pady=(18, 8))
-
-        ctk.CTkLabel(
-            header,
-            text="Geração de Relatórios",
-            font=(FONT_FAMILY, 22, "bold"),
-            text_color=COLORS["text"],
-            anchor="center"
-        ).pack(anchor="center")
-
-        ctk.CTkLabel(
-            header,
-            text="Gere PDFs, exporte dados agregados e visualize registros filtrados do SIA/SUS",
-            font=(FONT_FAMILY, 12),
-            text_color=COLORS["muted"],
-            anchor="center"
-        ).pack(anchor="center", pady=(2, 0))
+        header = PageHeader(parent, 'Análise e relatórios', 'Relatórios', 'Transforme a produção ambulatorial em relatórios e arquivos para análise.')
+        header.pack(fill="x", padx=18, pady=(24, 18))
 
     def _build_report_buttons(self, parent):
         """Constrói a seção moderna de botões de relatório."""
@@ -232,7 +216,7 @@ class ReportsTab:
             corner_radius=8,
             fg_color="#EAF3EF",
             progress_color=COLORS["primary"],
-            mode="indeterminate"
+            mode="determinate"
         )
         self.progress.pack(fill="x", padx=18, pady=(0, 8))
         self.progress.set(0)
@@ -541,6 +525,7 @@ class ReportsTab:
 
     def _start_processing(self, message: str):
         """Inicia a interface de processamento."""
+        self.progress.configure(mode="indeterminate")
         self.progress.start()
         self.status_label.configure(
             text=message,
@@ -550,6 +535,7 @@ class ReportsTab:
     def _stop_processing(self):
         """Para a interface de processamento."""
         self.progress.stop()
+        self.progress.configure(mode="determinate")
         self.progress.set(0)
         self.status_label.configure(
             text="Processamento concluído",

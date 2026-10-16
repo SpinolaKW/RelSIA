@@ -6,6 +6,7 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 from sia_app.ui.theme import COLORS, apply_theme, FONT_FAMILY
 from sia_app.ui.icons import icon
+from sia_app.ui.components.design import Tooltip
 
 from sia_app.utils.sia_mappings import (
     TIPOS_FINANCIAMENTO,
@@ -16,12 +17,14 @@ from sia_app.services.dashboard_image_exporter import DashboardImageExporter
 from sia_app.ui.components.dashboard_charts import DashboardChartRenderer
 
 class DashboardTab:
-    def __init__(self, parent, db, settings, logger, on_update_status=None):
+    def __init__(self, parent, db, settings, logger, on_update_status=None, on_navigate=None, session=None):
         self.parent = parent
         self.db = db
         self.settings = settings
         self.logger = logger
         self.on_update_status = on_update_status
+        self.on_navigate = on_navigate
+        self.session = session
         self.dashboard_service = DashboardService(db)
         self.chart_renderer = DashboardChartRenderer(COLORS)
 
@@ -46,24 +49,27 @@ class DashboardTab:
         self._startup_after = None
         self._chart_after = None
         self._closed = False
+        self._tooltips = []
         main = ctk.CTkScrollableFrame(self.frame, fg_color=COLORS["bg"], corner_radius=0,
                                      scrollbar_button_color="#C7D3DD")
         main.pack(fill="both", expand=True)
         header = ctk.CTkFrame(main, fg_color="transparent")
         header.pack(fill="x", padx=28, pady=(25, 20))
+        header.grid_columnconfigure(0, weight=1)
         title_box = ctk.CTkFrame(header, fg_color="transparent")
-        title_box.pack(side="left", fill="x", expand=True)
+        title_box.grid(row=0, column=0, sticky="ew")
         ctk.CTkLabel(title_box, text="CONTROLE DA PRODUÇÃO", font=(FONT_FAMILY, 9, "bold"),
                      text_color=COLORS["muted"]).pack(anchor="w")
         ctk.CTkLabel(title_box, text="Visão geral", font=(FONT_FAMILY, 29, "bold"),
                      text_color=COLORS["text"]).pack(anchor="w", pady=(2, 2))
-        ctk.CTkLabel(title_box, text="Acompanhe a produção ambulatorial e transforme dados em informação.",
-                     font=(FONT_FAMILY, 12), text_color=COLORS["muted"]).pack(anchor="w")
-        ctk.CTkButton(header, text="Atualizar dados", image=icon("refresh", COLORS["primary"], 17),
+        description = ctk.CTkLabel(title_box, text="Uma visão clara da produção, dos valores e das unidades de saúde.",
+                                    font=(FONT_FAMILY, 13), text_color=COLORS["muted"], justify="left", anchor="w")
+        description.pack(fill="x")
+        title_box.bind("<Configure>", lambda event: description.configure(wraplength=max(200, event.width - 12)), add="+")
+        ctk.CTkButton(header, text="Atualizar dados", image=icon("refresh", "#FFFFFF", 17),
                       compound="left", command=self.atualizar_dashboard, height=37, width=145,
-                      fg_color=COLORS["surface"], hover_color=COLORS["primary_soft"], border_width=1,
-                      border_color=COLORS["border"], text_color=COLORS["primary"],
-                      font=(FONT_FAMILY, 11)).pack(side="right", padx=(12, 0), pady=(20, 0))
+                      fg_color=COLORS["primary"], hover_color=COLORS["primary_dark"], border_width=0,
+                      text_color="#FFFFFF", font=(FONT_FAMILY, 12)).grid(row=0, column=1, sticky="e", padx=(12, 0), pady=(20, 0))
         self._build_filters(main)
         self._build_summary_cards(main)
         self._build_charts(main)
@@ -77,22 +83,24 @@ class DashboardTab:
     def _build_filters(self, parent):
         filtros = ctk.CTkFrame(parent, fg_color=COLORS["card"], border_color=COLORS["border"],
                               border_width=1, corner_radius=10)
-        filtros.pack(fill="x", padx=28, pady=(0, 20))
+        filtros.pack(fill="x", padx=28, pady=(0, 18))
         bar = ctk.CTkFrame(filtros, fg_color="transparent")
         bar.pack(fill="x", padx=18, pady=12)
-        ctk.CTkLabel(bar, text="", image=icon("filter", COLORS["primary"], 19), width=24).pack(side="left")
+        bar.grid_columnconfigure(1, weight=1)
+        ctk.CTkLabel(bar, text="", image=icon("filter", COLORS["primary"], 19), width=24).grid(row=0, column=0)
         info = ctk.CTkFrame(bar, fg_color="transparent")
-        info.pack(side="left", padx=12, fill="x", expand=True)
+        info.grid(row=0, column=1, padx=12, sticky="ew")
         ctk.CTkLabel(info, text="Filtros da consulta", font=(FONT_FAMILY, 12, "bold"),
                      text_color=COLORS["text"]).pack(anchor="w")
         self.filter_summary = tk.StringVar(value="Todos os períodos · Todos os estabelecimentos")
         self.filter_summary_label = ctk.CTkLabel(info, textvariable=self.filter_summary, font=(FONT_FAMILY, 10),
                                                  text_color=COLORS["muted"], anchor="w")
-        self.filter_summary_label.pack(anchor="w")
+        self.filter_summary_label.pack(fill="x")
+        bar.bind("<Configure>", lambda event: self.filter_summary_label.configure(wraplength=max(160, event.width - 190)), add="+")
         self.filters_button = ctk.CTkButton(bar, text="Exibir filtros", width=104, height=32,
                                            fg_color=COLORS["primary_soft"], text_color=COLORS["primary"],
                                            hover_color="#DDECE4", font=(FONT_FAMILY, 11), command=self._toggle_filters)
-        self.filters_button.pack(side="right", padx=(12, 0))
+        self.filters_button.grid(row=0, column=2, padx=(12, 0), sticky="e")
         self.filters_body = ctk.CTkFrame(filtros, fg_color="transparent")
         self._filters_visible = False
         for column in range(4):
@@ -174,38 +182,94 @@ class DashboardTab:
         return box
 
     def _build_summary_cards(self, parent):
-        self.cards_frame = ctk.CTkFrame(parent, fg_color="transparent")
-        self.cards_frame.pack(fill="x", padx=22, pady=(0, 12))
-        for column in range(3):
-            self.cards_frame.grid_columnconfigure(column, weight=1, uniform="cards")
         self.card_vars = {
             "qtd_produzida": tk.StringVar(value="—"), "qtd_aprovada": tk.StringVar(value="—"),
             "valor_produzido": tk.StringVar(value="—"), "valor_aprovado": tk.StringVar(value="—"),
             "procedimentos": tk.StringVar(value="—"), "estabelecimentos": tk.StringVar(value="—"),
         }
-        cards = [
-            ("Quantidade produzida", "qtd_produzida", "production", COLORS["info"], "#EDF3FA", "Procedimentos apresentados"),
-            ("Quantidade aprovada", "qtd_aprovada", "check", COLORS["primary"], "#ECF5EF", "Procedimentos aprovados"),
-            ("Estabelecimentos", "estabelecimentos", "building", COLORS["teal"], "#ECF6F3", "Unidades com produção"),
-            ("Valor produzido", "valor_produzido", "money", COLORS["purple"], "#F1EFF8", "Total apresentado no período"),
-            ("Valor aprovado", "valor_aprovado", "money", COLORS["primary"], "#ECF5EF", "Total aprovado no período"),
-            ("Procedimentos", "procedimentos", "report", COLORS["orange"], "#FBF3E9", "Códigos distintos na consulta"),
-        ]
-        for index, (title, key, symbol, color, soft, caption) in enumerate(cards):
+        self.approval_var = tk.StringVar(value="—")
+        self.approval_hint = tk.StringVar(value="Aprovada ÷ produzida")
+        self.production_context = tk.StringVar(value="Carregando os indicadores da consulta…")
+        self.hero = ctk.CTkFrame(parent, fg_color="#F0F7F3", border_color="#D6E6DD", border_width=1, corner_radius=12)
+        self.hero.pack(fill="x", padx=28, pady=(0, 18))
+        self.hero.grid_columnconfigure(0, weight=3)
+        self.hero.grid_columnconfigure(1, weight=2)
+        self.hero_main = ctk.CTkFrame(self.hero, fg_color="transparent")
+        self.hero_main.grid(row=0, column=0, sticky="nsew", padx=24, pady=20)
+        ctk.CTkLabel(self.hero_main, text="PANORAMA DA PRODUÇÃO", font=(FONT_FAMILY, 10, "bold"),
+                     text_color=COLORS["primary"]).pack(anchor="w")
+        numbers = ctk.CTkFrame(self.hero_main, fg_color="transparent")
+        numbers.pack(fill="x", pady=(12, 8))
+        for key, title in (("qtd_produzida", "Quantidade produzida"), ("qtd_aprovada", "Quantidade aprovada")):
+            group = ctk.CTkFrame(numbers, fg_color="transparent")
+            group.pack(side="left", fill="x", expand=True)
+            ctk.CTkLabel(group, text=title, font=(FONT_FAMILY, 12), text_color=COLORS["muted"]).pack(anchor="w")
+            ctk.CTkLabel(group, textvariable=self.card_vars[key], font=(FONT_FAMILY, 32, "bold"),
+                         text_color=COLORS["text"]).pack(anchor="w", pady=(2, 0))
+        ctk.CTkLabel(self.hero_main, textvariable=self.production_context, font=(FONT_FAMILY, 11),
+                     text_color=COLORS["muted"]).pack(anchor="w")
+        self.empty_action = ctk.CTkButton(self.hero_main, text="Importar arquivos", height=32, width=145,
+                                          image=icon("upload", COLORS["primary"], 16),
+                                          fg_color="#DDEEE4", hover_color="#D0E6D9", text_color=COLORS["primary"],
+                                          command=self._empty_action, font=(FONT_FAMILY, 12))
+        self.hero_ratio = ctk.CTkFrame(self.hero, fg_color="#E7F2EB", corner_radius=10)
+        self.hero_ratio.grid(row=0, column=1, sticky="nsew", padx=(0, 14), pady=14)
+        ctk.CTkLabel(self.hero_ratio, text="Aprovação por quantidade", font=(FONT_FAMILY, 12),
+                     text_color=COLORS["primary_dark"]).pack(anchor="w", padx=20, pady=(16, 0))
+        self.approval_label = ctk.CTkLabel(self.hero_ratio, textvariable=self.approval_var,
+                                          font=(FONT_FAMILY, 34, "bold"), text_color=COLORS["primary_dark"])
+        self.approval_label.pack(anchor="w", padx=20, pady=(1, 3))
+        self.approval_progress = ctk.CTkProgressBar(self.hero_ratio, height=6, fg_color="#CCDFD2",
+                                                   progress_color=COLORS["primary"], corner_radius=3)
+        self.approval_progress.set(0)
+        self.approval_progress.pack(fill="x", padx=20)
+        ctk.CTkLabel(self.hero_ratio, textvariable=self.approval_hint, font=(FONT_FAMILY, 10),
+                     text_color=COLORS["primary_dark"]).pack(anchor="w", padx=20, pady=(8, 12))
+
+        self.cards_frame = ctk.CTkFrame(parent, fg_color="transparent")
+        self.cards_frame.pack(fill="x", padx=22, pady=(0, 12))
+        self.metric_cards = []
+        self._summary_columns = None
+        cards = [("Valor produzido", "valor_produzido", "money", COLORS["purple"], "#F1EFF8", "Total apresentado na consulta"),
+                 ("Valor aprovado", "valor_aprovado", "check", COLORS["primary"], "#ECF5EF", "Total aprovado na consulta"),
+                 ("Estabelecimentos", "estabelecimentos", "building", COLORS["info"], "#EDF3FA", "Unidades com produção")]
+        for title, key, symbol, color, soft, caption in cards:
             card = ctk.CTkFrame(self.cards_frame, fg_color=COLORS["card"], border_color=COLORS["border"],
                                 border_width=1, corner_radius=10)
-            card.grid(row=index // 3, column=index % 3, sticky="nsew", padx=6, pady=(0, 12))
-            badge = ctk.CTkLabel(card, text="", image=icon(symbol, color, 21), width=42, height=42,
-                                 corner_radius=10, fg_color=soft)
-            badge.pack(side="left", padx=(17, 13), pady=22)
-            content = ctk.CTkFrame(card, fg_color="transparent")
-            content.pack(side="left", fill="x", expand=True, padx=(0, 14), pady=14)
-            ctk.CTkLabel(content, text=title, font=(FONT_FAMILY, 11), text_color=COLORS["muted"],
-                         anchor="w").pack(fill="x")
-            ctk.CTkLabel(content, textvariable=self.card_vars[key], font=(FONT_FAMILY, 22, "bold"),
-                         text_color=COLORS["text"], anchor="w").pack(fill="x", pady=(1, 0))
-            ctk.CTkLabel(content, text=caption, font=(FONT_FAMILY, 9), text_color=COLORS["muted"],
-                         anchor="w").pack(fill="x")
+            heading = ctk.CTkFrame(card, fg_color="transparent")
+            heading.pack(fill="x", padx=18, pady=(14, 0))
+            ctk.CTkLabel(heading, text=title, font=(FONT_FAMILY, 12), text_color=COLORS["muted"]).pack(side="left")
+            ctk.CTkLabel(heading, text="", image=icon(symbol, color, 18), fg_color=soft, corner_radius=7,
+                         width=31, height=31).pack(side="right")
+            ctk.CTkLabel(card, textvariable=self.card_vars[key], font=(FONT_FAMILY, 26, "bold"),
+                         text_color=COLORS["text"], anchor="w").pack(fill="x", padx=18, pady=(1, 0))
+            ctk.CTkLabel(card, text=caption, font=(FONT_FAMILY, 11), text_color=COLORS["muted"],
+                         anchor="w").pack(fill="x", padx=18, pady=(0, 15))
+            self.metric_cards.append(card)
+        self.cards_frame.bind("<Configure>", self._layout_summary, add="+")
+
+    def _layout_summary(self, event):
+        columns = 3 if event.width >= 990 else 2
+        if columns == self._summary_columns:
+            return
+        self._summary_columns = columns
+        for index in range(3):
+            self.cards_frame.grid_columnconfigure(index, weight=1 if index < columns else 0,
+                                                   uniform="metrics" if index < columns else "")
+        for index, card in enumerate(self.metric_cards):
+            card.grid(row=index // columns, column=index % columns, sticky="nsew", padx=6, pady=(0, 12))
+        if columns == 3:
+            self.hero_main.grid(row=0, column=0, columnspan=1, padx=24, pady=20)
+            self.hero_ratio.grid(row=0, column=1, columnspan=1, sticky="nsew", padx=(0, 14), pady=14)
+        else:
+            self.hero_main.grid(row=0, column=0, columnspan=2, padx=24, pady=20)
+            self.hero_ratio.grid(row=1, column=0, columnspan=2, sticky="nsew", padx=14, pady=(0, 14))
+
+    def _empty_action(self):
+        if self.session is not None and self.session.can_access("file_upload") and self.on_navigate:
+            self.on_navigate("file_upload")
+        elif not self._filters_visible:
+            self._toggle_filters()
 
     def _build_charts(self, parent):
         chart_card = ctk.CTkFrame(
@@ -216,7 +280,7 @@ class DashboardTab:
             corner_radius=12
         )
         chart_card.pack(fill="both", expand=True, padx=28, pady=(0, 24))
-        ctk.CTkLabel(chart_card, text="Análise da produção", font=(FONT_FAMILY, 16, "bold"),
+        ctk.CTkLabel(chart_card, text="Análise da produção", font=(FONT_FAMILY, 18, "bold"),
                      text_color=COLORS["text"]).pack(anchor="w", padx=20, pady=(16, 2))
 
         # Guarda qual aba está ativa
@@ -240,7 +304,8 @@ class DashboardTab:
 
         self.chart_tabs_next_button = ctk.CTkButton(
             tabs_right,
-            text="›",
+            text="",
+            image=icon("chevron_right", COLORS["primary"], 15),
             width=32,
             height=32,
             fg_color="transparent",
@@ -251,14 +316,15 @@ class DashboardTab:
             command=lambda: self._scroll_chart_tabs(1),
         )
         self.chart_tabs_next_button.pack(side="left", pady=11, padx=(0, 4))
+        self._tooltips.append(Tooltip(self.chart_tabs_next_button, "Mais gráficos"))
 
         # Exporta exatamente o gráfico da aba ativa.
         ctk.CTkButton(
             tabs_right,
-            text="Exportar",
+            text="Salvar gráfico",
             image=icon("download", COLORS["muted"], 16),
             compound="left",
-            width=92,
+            width=120,
             height=34,
             fg_color="transparent",
             hover_color="#EFF5F2",
@@ -270,7 +336,8 @@ class DashboardTab:
 
         self.chart_tabs_prev_button = ctk.CTkButton(
             tabs_bar,
-            text="‹",
+            text="",
+            image=icon("chevron_left", COLORS["primary"], 15),
             width=32,
             height=32,
             fg_color="transparent",
@@ -281,6 +348,7 @@ class DashboardTab:
             command=lambda: self._scroll_chart_tabs(-1),
         )
         self.chart_tabs_prev_button.pack(side="left", pady=11, padx=(10, 4))
+        self._tooltips.append(Tooltip(self.chart_tabs_prev_button, "Gráficos anteriores"))
 
         self.chart_tabs_canvas = tk.Canvas(
             tabs_bar,
@@ -488,10 +556,12 @@ class DashboardTab:
         if first is None or last is None:
             first, last = self.chart_tabs_canvas.xview()
         self.chart_tabs_prev_button.configure(
-            state="normal" if first > 0.001 else "disabled"
+            state="normal" if first > 0.001 else "disabled",
+            image=icon("chevron_left", COLORS["primary"] if first > 0.001 else "#B9C7CE", 15),
         )
         self.chart_tabs_next_button.configure(
-            state="normal" if last < 0.999 else "disabled"
+            state="normal" if last < 0.999 else "disabled",
+            image=icon("chevron_right", COLORS["primary"] if last < 0.999 else "#B9C7CE", 15),
         )
 
     def _scroll_chart_tabs(self, direction):
@@ -558,10 +628,7 @@ class DashboardTab:
                 modo_cbo,
             )
             self._update_card_values(dados.cards)
-            start, end = self.competencia_inicio_var.get().strip(), self.competencia_fim_var.get().strip()
-            period = f"{start or 'Início'} a {end or 'atual'}" if start or end else "Todos os períodos"
-            cnes = self.cnes_var.get().strip()
-            self.filter_summary.set(f"{period} · " + (f"CNES {cnes}" if cnes else "Todos os estabelecimentos"))
+            self.filter_summary.set(self._filter_description())
 
             self._draw_bar_chart(
                 self.canvas_grupos,
@@ -674,6 +741,56 @@ class DashboardTab:
             self.card_vars[key].set(self._fmt_int(cards.get(key)))
         for key in ("valor_produzido", "valor_aprovado"):
             self.card_vars[key].set(self._fmt_money(cards.get(key)))
+        produced = float(cards.get("qtd_produzida") or 0)
+        approved = float(cards.get("qtd_aprovada") or 0)
+        if produced > 0:
+            rate = approved / produced
+            self.approval_var.set(f"{rate * 100:.1f}%".replace(".", ","))
+            self.approval_progress.set(max(0, min(1, rate)))
+            self.approval_hint.set(f"Diferença de quantidades: {self._fmt_int(produced - approved)}")
+        else:
+            self.approval_var.set("—")
+            self.approval_progress.set(0)
+            self.approval_hint.set("Sem quantidade produzida nesta consulta")
+        procedures = int(cards.get("procedimentos") or 0)
+        if procedures:
+            self.production_context.set(f"{self._fmt_int(procedures)} procedimentos distintos na consulta")
+            self.empty_action.pack_forget()
+        else:
+            self.production_context.set("Nenhuma produção encontrada. Importe arquivos ou ajuste os filtros.")
+            can_import = self.session is not None and self.session.can_access("file_upload") and self.on_navigate
+            self.empty_action.configure(text="Importar arquivos" if can_import else "Exibir filtros",
+                                        image=icon("upload" if can_import else "filter", COLORS["primary"], 16))
+            self.empty_action.pack(anchor="w", pady=(12, 0))
+
+    @staticmethod
+    def _display_competence(value):
+        value = value.strip()
+        if len(value) == 6 and value.isdigit() and 1 <= int(value[4:]) <= 12:
+            return f"{value[4:]}/{value[:4]}"
+        return value
+
+    def _filter_description(self):
+        start = self._display_competence(self.competencia_inicio_var.get())
+        end = self._display_competence(self.competencia_fim_var.get())
+        parts = [f"{start or 'Início'} a {end or 'atual'}" if start or end else "Todos os períodos"]
+        cnes = self.cnes_var.get().strip()
+        parts.append(f"CNES {cnes}" if cnes else "Todos os estabelecimentos")
+        procedure = self.procedimento_var.get().strip()
+        if procedure:
+            parts.append(f"Procedimento {procedure}")
+        financing = self.tipo_financiamento_var.get()
+        if financing != "Todos":
+            parts.append(financing)
+        complexity = self.complexidade_var.get()
+        if complexity != "Todas":
+            parts.append(complexity)
+        if self.metrica_var.get() != "Quantidade Produzida":
+            parts.append(self.metrica_var.get())
+        if self.top_n_var.get().strip() != "10":
+            parts.append(f"Top {DashboardService.normalizar_top_n(self.top_n_var.get())}")
+        return " · ".join(parts)
+
 
     def _is_valor(self):
         return DashboardService.is_value_metric(self.metrica_var.get())
@@ -753,6 +870,8 @@ class DashboardTab:
     def shutdown(self):
         """Cancela desenhos pendentes antes de fechar ou trocar de usuário."""
         self._closed = True
+        for tooltip in self._tooltips:
+            tooltip.hide()
         for widget, callback in ((self.frame, self._startup_after), (self.chart_tabs_canvas, self._chart_after)):
             if callback is not None:
                 widget.after_cancel(callback)

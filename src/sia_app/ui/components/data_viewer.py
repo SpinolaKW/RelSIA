@@ -6,6 +6,7 @@ from tkinter import ttk
 from typing import Callable, List, Mapping
 
 import customtkinter as ctk
+from sia_app.ui.theme import configure_table_style
 from sia_app.ui.theme import FONT_FAMILY
 
 from sia_app.services.data_view_service import DataViewService
@@ -161,28 +162,7 @@ class DataViewerWindow:
         frame = ctk.CTkFrame(card, fg_color="transparent")
         frame.pack(fill="both", expand=True, padx=16, pady=16)
 
-        style = ttk.Style(window)
-        style.configure(
-            "ModernData.Treeview",
-            background="#FFFFFF",
-            fieldbackground="#FFFFFF",
-            foreground=self.colors["text"],
-            rowheight=30,
-            font=(FONT_FAMILY, 9),
-            borderwidth=0,
-        )
-        style.configure(
-            "ModernData.Treeview.Heading",
-            font=(FONT_FAMILY, 9, "bold"),
-            foreground=self.colors["text"],
-            background="#F8FAFC",
-            relief="flat",
-        )
-        style.map(
-            "ModernData.Treeview",
-            background=[("selected", "#DCEBFF")],
-            foreground=[("selected", self.colors["text"])],
-        )
+        configure_table_style(window, "ModernData.Treeview")
 
         tree = ttk.Treeview(
             frame, columns=COLUMNS, show="headings", height=15, style="ModernData.Treeview"

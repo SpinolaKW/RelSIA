@@ -13,14 +13,8 @@ class DashboardChartRenderer:
     """Desenha gráficos legíveis tanto na tela quanto na exportação."""
 
     SERIES_COLORS = (
-        "#0B5ED7",
-        "#0F9F9A",
-        "#8E24AA",
-        "#F97316",
-        "#16A34A",
-        "#D946EF",
-        "#64748B",
-        "#B45309",
+        "#317968", "#5A8EB2", "#8D83B6", "#C1955F",
+        "#6BA892", "#A6778A", "#7E93A8", "#A3AF70",
     )
 
     def __init__(self, colors: Mapping[str, str]):
@@ -358,7 +352,7 @@ class DashboardChartRenderer:
                 title,
                 ha="left",
                 va="top",
-                fontsize=15,
+                fontsize=12,
                 fontweight="bold",
                 color=self.colors["text"],
             ).set_gid("chart-title")
@@ -380,7 +374,7 @@ class DashboardChartRenderer:
         ax.set_title(
             title,
             loc="left",
-            fontsize=15,
+            fontsize=12,
             fontweight="bold",
             color=self.colors["text"],
             pad=12,
@@ -390,7 +384,7 @@ class DashboardChartRenderer:
         ax.text(
             0.5,
             0.52,
-            "Nenhum dado encontrado para os filtros selecionados.",
+            "Sem produção para esta consulta.\nAjuste os filtros ou importe arquivos do SIA.",
             transform=ax.transAxes,
             ha="center",
             va="center",

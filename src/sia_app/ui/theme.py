@@ -2,6 +2,7 @@
 
 from pathlib import Path
 import sys
+from tkinter import ttk
 
 import customtkinter as ctk
 
@@ -17,7 +18,7 @@ COLORS = {
     "primary_dark": "#245A4E",
     "primary_soft": "#EAF3EF",
     "text": "#203445",
-    "muted": "#697C8E",
+    "muted": "#5B6E80",
     "border": "#DFE6EE",
     "success": "#307564",
     "warning": "#B57A25",
@@ -39,3 +40,24 @@ def apply_theme() -> None:
     """Carrega o mesmo tema nos diálogos e na janela principal."""
     ctk.set_appearance_mode("light")
     ctk.set_default_color_theme(str(Path(__file__).with_name("relsia_theme.json")))
+
+
+def configure_table_style(master, name="RelSIA.Treeview"):
+    """Usa as opções nativas do ttk para manter texto e seleção legíveis."""
+    style = ttk.Style(master)
+    style.configure(name, background=COLORS["surface"], fieldbackground=COLORS["surface"],
+                    foreground=COLORS["text"], rowheight=36, borderwidth=0,
+                    bordercolor=COLORS["border"], lightcolor=COLORS["border"], darkcolor=COLORS["border"],
+                    font=(FONT_FAMILY, 11))
+    style.configure(name + ".Heading", background="#F1F5F8", foreground=COLORS["muted"],
+                    font=(FONT_FAMILY, 10, "bold"), padding=(12, 11), relief="flat")
+    style.map(name, background=[("selected", "#DCEDE5")],
+              foreground=[("selected", COLORS["primary_dark"])])
+    style.map(name + ".Heading", background=[("active", "#E8EFEC")])
+    for direction in ("Vertical", "Horizontal"):
+        scrollbar = direction + ".TScrollbar"
+        style.configure(scrollbar, background="#C7D3DC", troughcolor=COLORS["surface"],
+                        bordercolor=COLORS["surface"], lightcolor="#C7D3DC", darkcolor="#C7D3DC",
+                        arrowcolor=COLORS["muted"], arrowsize=11, borderwidth=0, gripcount=0)
+        style.map(scrollbar, background=[("active", "#A6BAC6"), ("pressed", "#92AEBE")])
+    return name

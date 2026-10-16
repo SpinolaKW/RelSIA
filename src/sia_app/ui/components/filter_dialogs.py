@@ -6,6 +6,7 @@ from tkinter import ttk
 from typing import Callable, List, Mapping
 
 import customtkinter as ctk
+from sia_app.ui.theme import configure_table_style
 from sia_app.ui.theme import FONT_FAMILY
 
 
@@ -95,23 +96,7 @@ class FilterDialogs:
         inner = ctk.CTkFrame(card, fg_color="transparent")
         inner.pack(fill="both", expand=True, padx=16, pady=16)
 
-        style = ttk.Style(window)
-        style.configure(
-            "ModernGroups.Treeview",
-            background="#FFFFFF",
-            fieldbackground="#FFFFFF",
-            foreground=self.colors["text"],
-            rowheight=30,
-            font=(FONT_FAMILY, 10),
-            borderwidth=0,
-        )
-        style.configure(
-            "ModernGroups.Treeview.Heading",
-            font=(FONT_FAMILY, 10, "bold"),
-            foreground=self.colors["text"],
-            background="#F8FAFC",
-            relief="flat",
-        )
+        configure_table_style(window, "ModernGroups.Treeview")
         tree_frame = ttk.Frame(inner)
         tree_frame.pack(fill="both", expand=True)
         tree = ttk.Treeview(

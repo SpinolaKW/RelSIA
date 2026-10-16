@@ -1,6 +1,8 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
 import customtkinter as ctk
+from sia_app.ui.theme import configure_table_style
+from sia_app.ui.components.design import PageHeader
 
 from sia_app.services.prd_editor_service import PrdEditorService
 from sia_app.ui.components.production_edit_dialog import ProductionEditDialog
@@ -50,24 +52,8 @@ class PrdEditorTab:
         self._create_action_section(main)
         
     def _create_title_section(self, parent):
-        header = ctk.CTkFrame(parent, fg_color="transparent")
-        header.grid(row=0, column=0, sticky="ew", padx=18, pady=(18, 8))
-
-        ctk.CTkLabel(
-            header,
-            text="Dados de Produção",
-            font=(FONT_FAMILY, 22, "bold"),
-            text_color=COLORS["text"],
-            anchor="center"
-        ).pack(anchor="center")
-
-        ctk.CTkLabel(
-            header,
-            text="Consulte, edite e exclua registros de produção ambulatorial importados no sistema",
-            font=(FONT_FAMILY, 12),
-            text_color=COLORS["muted"],
-            anchor="center"
-        ).pack(anchor="center", pady=(2, 0))
+        header = PageHeader(parent, 'Gestão e cadastros', 'Dados de produção', 'Consulte os registros importados e revise os dados da produção ambulatorial.')
+        header.grid(row=0, column=0, sticky="ew", padx=18, pady=(24, 18))
         
     def _create_filters_section(self, parent):
         filtros = ctk.CTkFrame(
@@ -199,32 +185,7 @@ class PrdEditorTab:
         tabela_frame.rowconfigure(0, weight=1)
         tabela_frame.columnconfigure(0, weight=1)
 
-        style = ttk.Style()
-        style.configure(
-            "ModernPrd.Treeview",
-            background="#FFFFFF",
-            fieldbackground="#FFFFFF",
-            foreground=COLORS["text"],
-            rowheight=30,
-            font=(FONT_FAMILY, 9),
-            borderwidth=0
-        )
-        style.configure(
-            "ModernPrd.Treeview.Heading",
-            font=(FONT_FAMILY, 9, "bold"),
-            foreground=COLORS["text"],
-            background="#F8FAFC",
-            relief="flat"
-        )
-        style.map(
-            "ModernPrd.Treeview",
-            background=[("selected", "#DCEBFF")],
-            foreground=[("selected", COLORS["text"])]
-        )
-        style.map(
-            "ModernPrd.Treeview.Heading",
-            background=[("active", "#EFF5F2")]
-        )
+        configure_table_style(self.frame, "ModernPrd.Treeview")
 
         colunas = (
             "id",

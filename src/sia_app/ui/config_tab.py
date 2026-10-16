@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 import customtkinter as ctk
+from sia_app.ui.components.design import PageHeader
 from PIL import Image, ImageTk, ImageOps
 import os
 from pathlib import Path
@@ -97,26 +98,9 @@ class ConfigTab:
         )
         self.scrollable_frame.pack(fill="both", expand=True)
     
-    def _create_title_section(self) -> None:
-        """Cria seção de título moderna."""
-        header = ctk.CTkFrame(self.scrollable_frame, fg_color="transparent")
-        header.pack(fill="x", padx=18, pady=(18, 8))
-
-        ctk.CTkLabel(
-            header,
-            text="Configurações do Sistema",
-            font=(FONT_FAMILY, 22, "bold"),
-            text_color=COLORS["text"],
-            anchor="center"
-        ).pack(anchor="center")
-
-        ctk.CTkLabel(
-            header,
-            text="Configure o logo e os dados institucionais utilizados nos relatórios",
-            font=(FONT_FAMILY, 12),
-            text_color=COLORS["muted"],
-            anchor="center"
-        ).pack(anchor="center", pady=(2, 0))
+    def _create_title_section(self):
+        header = PageHeader(self.scrollable_frame, 'Administração', 'Configurações', 'Gerencie os usuários, a identidade da instituição e as preferências dos relatórios.')
+        header.pack(fill="x", padx=18, pady=(24, 18))
     
     def _create_logo_section(self) -> None:
         """Cria seção moderna de configuração do logo."""

@@ -24,6 +24,17 @@ O logotipo usado nos PDFs é uma configuração separada: ele pode ser escolhido
 - Cancelamento de desenhos pendentes ao encerrar o dashboard.
 - Correção da recriação da janela no teste gráfico, evitando referências a frames já destruídos.
 
+### Refinamentos desta revisão
+
+- Menu organizado em Análise, Gestão e Administração, com descrições para os ícones.
+- Busca de telas por `Ctrl+K`; use as setas para selecionar, Enter para abrir e Esc para fechar. A pesquisa aceita nomes sem acentos e lista apenas as telas permitidas para o perfil conectado.
+- `Ctrl+R` atualiza o dashboard quando ele está aberto. `Ctrl+1` até `Ctrl+8` abrem as opções disponíveis, na ordem do menu.
+- Panorama com a quantidade produzida, a quantidade aprovada, a aprovação percentual e a diferença entre as duas quantidades.
+- Cartões financeiros mais legíveis, resumo completo dos filtros e orientação para consultas sem produção.
+- Cabeçalhos compartilhados, tabelas com seleção legível e rolagem com cores consistentes.
+
+A aprovação por quantidade é calculada como quantidade aprovada dividida pela quantidade produzida, multiplicada por 100. Sem quantidade produzida, o percentual aparece como “—”. A diferença apresentada é quantidade produzida menos quantidade aprovada. Os indicadores respeitam os filtros aplicados.
+
 Os serviços de importação, cálculos, geração de PDF/CSV, autenticação e estrutura do banco foram mantidos. O pacote não contém banco real nem credenciais.
 
 ## Dados existentes
@@ -41,7 +52,7 @@ O arquivo `Abrir_SIA_REDE_MODELO.bat` foi preservado como modelo de distribuiç�
 - O resultado é `dist\RelatorioSIA\RelatorioSIA.exe`. Distribua a pasta `RelatorioSIA` inteira, incluindo `_internal`.
 - O banco real não é incorporado à compilação. A primeira execução cria um banco vazio se não houver um banco existente na pasta de dados configurada.
 
-O código foi validado em Linux com Python 3.12, dependências nas versões declaradas e servidor gráfico de testes. Passaram 33 testes (29 originais e 4 de interface), o autoteste SQLite e a navegação nas oito telas do Administrador e nas três do Visualizador. O executável Windows ainda precisa ser compilado e conferido no Windows.
+O código foi validado em Linux com Python 3.12, dependências nas versões declaradas e servidor gráfico de testes. Passaram 36 testes (29 originais e 7 de interface), o autoteste SQLite e a navegação nas oito telas do Administrador e nas três do Visualizador. O executável Windows ainda precisa ser compilado e conferido no Windows.
 
 As capturas na pasta `docs` foram feitas da aplicação em execução com dados fictícios. Elas não representam uma base real. A renderização das fontes pode variar conforme o Windows e sua escala de exibição.
 
@@ -55,4 +66,4 @@ python3 -m venv .venv
 .venv/bin/python run.py
 ```
 
-Os testes de interface exigem uma sessão gráfica (`DISPLAY` no Linux). Sem ela, os quatro testes de interface são marcados como ignorados; isso não valida as telas. O comando `run.py --ui-smoke-test` percorre os dois perfis em um banco de testes quando `SIA_DATA_DIR` aponta para uma pasta temporária.
+Os testes de interface exigem uma sessão gráfica (`DISPLAY` no Linux). Sem ela, os sete testes de interface são marcados como ignorados; isso não valida as telas. O comando `run.py --ui-smoke-test` percorre os dois perfis em um banco de testes quando `SIA_DATA_DIR` aponta para uma pasta temporária.

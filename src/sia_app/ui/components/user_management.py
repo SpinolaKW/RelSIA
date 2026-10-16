@@ -8,6 +8,7 @@ from tkinter import messagebox, ttk
 from typing import Any, Callable
 
 import customtkinter as ctk
+from sia_app.ui.theme import configure_table_style
 
 from sia_app.services.auth_service import (
     ROLE_ADMIN,
@@ -321,7 +322,8 @@ class UserManagementPanel:
         table_frame.pack(fill="x", padx=18, pady=(4, 8))
         table_frame.pack_propagate(False)
         columns = ("name", "username", "role", "status", "last_login")
-        self.tree = ttk.Treeview(table_frame, columns=columns, show="headings", height=6)
+        self.tree = ttk.Treeview(table_frame, columns=columns, show="headings", height=6,
+                                  style=configure_table_style(table_frame))
         headings = {
             "name": "Nome",
             "username": "Usuário",

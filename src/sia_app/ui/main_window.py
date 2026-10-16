@@ -13,6 +13,8 @@ from sia_app.services.auth_service import AuthService, UserSession
 
 from sia_app.ui.theme import COLORS, apply_theme, FONT_FAMILY
 from sia_app.ui.icons import icon
+from sia_app.ui.components.design import Tooltip
+from sia_app.ui.components.navigation_search import NavigationSearch
 
 NAV_ICONS = {
     "dashboard": "dashboard", "file_upload": "upload", "filters": "filter",
@@ -164,6 +166,9 @@ class MainWindow:
         """Constrói uma navegação fixa e uma área de trabalho independente."""
         self._compact_sidebar = False
         self._sidebar_after = None
+        self._navigation_search = None
+        self._tooltips = []
+        self._keyboard_bindings = []
         self.main_container = ctk.CTkFrame(self.root, fg_color=COLORS["bg"], corner_radius=0)
         self.main_container.pack(fill="both", expand=True)
         self.main_container.grid_rowconfigure(0, weight=1)
@@ -176,6 +181,7 @@ class MainWindow:
         self._create_tab_area(workspace)
         self._resize_binding = self.root.bind("<Configure>", self._schedule_sidebar_resize, add="+")
         self._resize_sidebar()
+        self._register_shortcuts()
 
     def _create_header(self, parent) -> None:
         header = ctk.CTkFrame(parent, fg_color=COLORS["surface"], corner_radius=0, height=70)
@@ -189,12 +195,37 @@ class MainWindow:
                      text_color=COLORS["muted"]).pack(side="left")
         ctk.CTkLabel(header, textvariable=self.breadcrumb_var, font=(FONT_FAMILY, 12),
                      text_color=COLORS["text"]).pack(side="left", padx=18)
-        badge = ctk.CTkFrame(header, fg_color=COLORS["primary_soft"], corner_radius=7,
-                            border_width=1, border_color="#D7E7DE")
-        badge.pack(side="right", padx=28, pady=20)
-        ctk.CTkLabel(badge, text="SQLite · Banco de dados", image=icon("database", COLORS["primary"], 15),
-                     compound="left", padx=10, height=27, font=(FONT_FAMILY, 10),
-                     text_color=COLORS["primary_dark"]).pack(padx=3)
+        search = ctk.CTkButton(header, text="Buscar uma tela     Ctrl K", width=218, height=36,
+                               image=icon("search", COLORS["muted"], 17), compound="left",
+                               fg_color=COLORS["bg"], hover_color="#E9EFF1", border_width=1,
+                               border_color=COLORS["border"], text_color=COLORS["muted"],
+                               font=(FONT_FAMILY, 12), command=self.open_navigation_search)
+        search.pack(side="right", padx=28, pady=17)
+        self._tooltips.append(Tooltip(search, "Buscar uma tela pelo nome · Ctrl+K"))
+
+    def open_navigation_search(self):
+        if self._navigation_search is None:
+            self._navigation_search = NavigationSearch(self.root, self.nav_configs, self.navigate_to_tab)
+        self._navigation_search.show()
+        return "break"
+
+    def _register_shortcuts(self):
+        bindings = [("<Control-k>", lambda _event: self.open_navigation_search()),
+                    ("<Control-r>", self._refresh_current_dashboard)]
+        for index, (key, _label) in enumerate(self.nav_configs, 1):
+            bindings.append((f"<Control-Key-{index}>", lambda _event, target=key: self._navigate_shortcut(target)))
+        for event, callback in bindings:
+            binding = self.root.bind(event, callback, add="+")
+            self._keyboard_bindings.append((event, binding))
+
+    def _navigate_shortcut(self, target):
+        self.navigate_to_tab(target)
+        return "break"
+
+    def _refresh_current_dashboard(self, _event=None):
+        if self.get_current_tab() == "dashboard":
+            self.tabs["dashboard"].atualizar_dashboard()
+            return "break"
 
     def _create_nav_bar(self, parent) -> None:
         self.sidebar = ctk.CTkFrame(parent, fg_color=COLORS["nav"], width=236, corner_radius=0)
@@ -221,7 +252,7 @@ class MainWindow:
                                              font=(FONT_FAMILY, 9, "bold"), text_color=COLORS["nav_muted"])
         self.nav_section_label.grid(row=1, column=0, sticky="ew", padx=25, pady=(8, 12))
         self.nav_container = ctk.CTkScrollableFrame(self.sidebar, fg_color="transparent", corner_radius=0,
-                                                  scrollbar_button_color=COLORS["nav"],
+                                                  scrollbar_button_color="#344D5C",
                                                   scrollbar_button_hover_color=COLORS["nav_hover"])
         self.nav_container.grid(row=2, column=0, sticky="nsew", padx=(10, 0))
         labels = [("dashboard", "Visão geral"), ("file_upload", "Importar arquivos"),
@@ -229,15 +260,32 @@ class MainWindow:
                   ("establishments", "Estabelecimentos"), ("prd_editor", "Dados de produção"),
                   ("database", "Banco de dados"), ("config", "Configurações")]
         self.nav_configs = [(key, label) for key, label in labels if self.session.can_access(key)]
-        for key, label in self.nav_configs:
-            button = ctk.CTkButton(self.nav_container, text=label, anchor="w", height=44,
+        self.nav_groups = []
+        previous_group = None
+        groups = {"dashboard": "ANÁLISE", "filters": "ANÁLISE", "reports": "ANÁLISE",
+                  "file_upload": "GESTÃO", "establishments": "GESTÃO", "prd_editor": "GESTÃO",
+                  "database": "ADMINISTRAÇÃO", "config": "ADMINISTRAÇÃO"}
+        # Mantém a análise e a gestão agrupadas no menu.
+        order = ("dashboard", "filters", "reports", "file_upload", "establishments", "prd_editor", "database", "config")
+        labels_by_key = dict(self.nav_configs)
+        self.nav_configs = [(key, labels_by_key[key]) for key in order if key in labels_by_key]
+        for index, (key, label) in enumerate(self.nav_configs):
+            group = groups[key]
+            if group != previous_group:
+                caption = ctk.CTkLabel(self.nav_container, text=group, anchor="w", height=22,
+                                       font=(FONT_FAMILY, 9, "bold"), text_color=COLORS["nav_muted"])
+                caption.pack(fill="x", padx=15, pady=(10 if previous_group else 0, 4))
+                self.nav_groups.append((caption, group))
+                previous_group = group
+            button = ctk.CTkButton(self.nav_container, text=label, anchor="w", height=42,
                                    corner_radius=7, fg_color="transparent", hover_color=COLORS["nav_hover"],
-                                   text_color=COLORS["nav_text"], font=(FONT_FAMILY, 12),
+                                   text_color=COLORS["nav_text"], font=(FONT_FAMILY, 13),
                                    image=icon(NAV_ICONS[key], COLORS["nav_text"], 19),
                                    compound="left", border_spacing=12,
                                    command=lambda tab_key=key: self.navigate_to_tab(tab_key))
             button.pack(fill="x", pady=3, padx=(3, 0))
             self.nav_buttons[key] = button
+            self._tooltips.append(Tooltip(button, f"{label} · Ctrl+{index + 1}"))
 
         bottom = ctk.CTkFrame(self.sidebar, fg_color="transparent")
         bottom.grid(row=3, column=0, sticky="ew", padx=18, pady=(12, 20))
@@ -275,7 +323,7 @@ class MainWindow:
 
     def _resize_sidebar(self) -> None:
         self._sidebar_after = None
-        compact = self.root.winfo_width() < 1180
+        compact = self.root.winfo_width() < 1280
         if compact == self._compact_sidebar:
             return
         self._compact_sidebar = compact
@@ -291,6 +339,8 @@ class MainWindow:
         for key, label in self.nav_configs:
             self.nav_buttons[key].configure(text="" if compact else label, anchor="center" if compact else "w",
                                             width=40 if compact else 190, border_spacing=0 if compact else 12)
+        for caption, group in self.nav_groups:
+            caption.configure(text="" if compact else group, height=12 if compact else 22)
         self.about_button.configure(text="" if compact else "Sobre o RelSIA", width=36 if compact else 190)
         self.logout_button.configure(text="" if compact else "Sair da conta", width=36 if compact else 190)
 
@@ -330,7 +380,8 @@ class MainWindow:
             tab_class = getattr(module, class_name)
 
             if class_name == "DashboardTab":
-                tab_instance = tab_class(self.notebook, self.db, self.settings, self.logger, on_update_status=self.atualizar_status_dashboard)
+                tab_instance = tab_class(self.notebook, self.db, self.settings, self.logger, on_update_status=self.atualizar_status_dashboard,
+                                          on_navigate=self.navigate_to_tab, session=self.session)
             elif class_name == "ConfigTab":
                 tab_instance = tab_class(self.notebook, self.db, self.settings, self.logger, self.auth_service, self.session, self._on_session_changed)
             else:
@@ -494,6 +545,12 @@ class MainWindow:
         if self._shutting_down:
             return
         self._shutting_down = True
+        if self._navigation_search is not None:
+            self._navigation_search.close()
+        for tooltip in self._tooltips:
+            tooltip.hide()
+        for event, binding in self._keyboard_bindings:
+            self.root.unbind(event, binding)
         if self._sidebar_after is not None:
             self.root.after_cancel(self._sidebar_after)
             self._sidebar_after = None

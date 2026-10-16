@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
 import customtkinter as ctk
+from sia_app.ui.components.design import PageHeader
 from typing import Any, Dict
 import logging
 from sia_app.utils.sia_mappings import (TIPOS_FINANCIAMENTO, COMPLEXIDADES)
@@ -61,26 +62,9 @@ class FiltersTab:
         # Status
         self._create_status_section(main_frame)
 
-    def _create_title_section(self, parent) -> None:
-        """Cria a seção de título."""
-        header = ctk.CTkFrame(parent, fg_color="transparent")
-        header.pack(fill="x", padx=18, pady=(18, 8))
-
-        ctk.CTkLabel(
-            header,
-            text="Filtros para Relatórios",
-            font=(FONT_FAMILY, 22, "bold"),
-            text_color=COLORS["text"],
-            anchor="center"
-        ).pack(anchor="center")
-
-        ctk.CTkLabel(
-            header,
-            text="Configure os filtros que serão utilizados nos relatórios do SIA/SUS",
-            font=(FONT_FAMILY, 12),
-            text_color=COLORS["muted"],
-            anchor="center"
-        ).pack(anchor="center", pady=(2, 0))
+    def _create_title_section(self, parent):
+        header = PageHeader(parent, 'Análise e relatórios', 'Filtros', 'Defina o período, as unidades e os procedimentos para sua consulta.')
+        header.pack(fill="x", padx=18, pady=(24, 18))
 
     def _create_filters_section(self, parent) -> None:
         """Cria a seção moderna de filtros principais."""

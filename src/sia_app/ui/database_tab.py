@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox, simpledialog
 import customtkinter as ctk
+from sia_app.ui.components.design import PageHeader
 import os
 from typing import Dict, Any, Optional
 import logging
@@ -68,26 +69,9 @@ class DatabaseTab:
         # Seção de log
         self._create_log_section(main_frame)
 
-    def _create_title_section(self, parent) -> None:
-        """Cria a seção de título."""
-        header = ctk.CTkFrame(parent, fg_color="transparent")
-        header.pack(fill="x", padx=18, pady=(18, 8))
-
-        ctk.CTkLabel(
-            header,
-            text="Gerenciamento do Banco de Dados",
-            font=(FONT_FAMILY, 22, "bold"),
-            text_color=COLORS["text"],
-            anchor="center"
-        ).pack(anchor="center")
-
-        ctk.CTkLabel(
-            header,
-            text="Realize backups, restaurações, manutenção e acompanhe o status do banco",
-            font=(FONT_FAMILY, 12),
-            text_color=COLORS["muted"],
-            anchor="center"
-        ).pack(anchor="center", pady=(2, 0))
+    def _create_title_section(self, parent):
+        header = PageHeader(parent, 'Administração', 'Banco de dados', 'Proteja suas informações com backups e acompanhe a manutenção do banco.')
+        header.pack(fill="x", padx=18, pady=(24, 18))
         
     def _create_operations_section(self, parent) -> None:
         """Cria a seção moderna de botões de operação."""
